@@ -46,45 +46,34 @@ const traineeSchema = new mongoose.Schema({
 });
 
 
-const videoSchema = new mongoose.Schema({
-  title: String,
-  url: String,
-  trainer: { type: mongoose.Schema.Types.ObjectId, ref: 'Trainer' }
-});
-
-const Trainer = mongoose.model('Trainer', trainerSchema);
-const Trainee = mongoose.model('Trainee', traineeSchema);
-
-module.exports = { Trainer, Trainee };
-
 
 // Define the schema for workouts
-const WorkoutSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true
-  },
-  description: {
-    type: String,
-    required: true
-  },
-  duration: {
-    type: Number,
-    required: true
-  },
-  difficulty: {
-    type: String,
-    enum: ['Easy', 'Medium', 'Hard'],
-    default: 'Medium'
-  },
-  imageUrl: {
-    type: String
-  },
-  // You can add more fields as needed
-});
+// const WorkoutSchema = new mongoose.Schema({
+//   title: {
+//     type: String,
+//     required: true
+//   },
+//   description: {
+//     type: String,
+//     required: true
+//   },
+//   duration: {
+//     type: Number,
+//     required: true
+//   },
+//   difficulty: {
+//     type: String,
+//     enum: ['Easy', 'Medium', 'Hard'],
+//     default: 'Medium'
+//   },
+//   imageUrl: {
+//     type: String
+//   },
+//   // You can add more fields as needed
+// });
 
-// Create a model for workouts
-const Workout = mongoose.model('Workout', WorkoutSchema);
+// // Create a model for workouts
+// const Workout = mongoose.model('Workout', WorkoutSchema);
 
-module.exports = Workout;
+// module.exports = Workout;
 
