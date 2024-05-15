@@ -1,7 +1,7 @@
 // models.js
 const mongoose = require('mongoose');
 
-const trainerSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
@@ -9,6 +9,10 @@ const trainerSchema = new mongoose.Schema({
   },
   password: {
     type: String,
+    required: true
+  },
+  role: {
+    type:String,
     required: true
   },
   name: String,
@@ -32,18 +36,18 @@ const dietPlanSchema = new mongoose.Schema({
 module.exports = mongoose.model('DietPlan', dietPlanSchema);
 
 
-const traineeSchema = new mongoose.Schema({
-  email: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  password: {
-    type: String,
-    required: true
-  },
-  // Add any other fields specific to Trainee model
-});
+// const traineeSchema = new mongoose.Schema({
+//   email: {
+//     type: String,
+//     required: true,
+//     unique: true
+//   },
+//   password: {
+//     type: String,
+//     required: true
+//   },
+//   // Add any other fields specific to Trainee model
+// });
 
 
 
