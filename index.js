@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const { userSchema } = require('./schema');
 const app = express();
 const port = 4000;
-
+const User = require('./schema')
 app.use(express.json());
 
 mongoose.connect('mongodb+srv://nithiya_5:nithiya_2005@cluster0.a02jqzo.mongodb.net/fitness?retryWrites=true&w=majority&appName=Cluster0', {
@@ -17,9 +17,9 @@ mongoose.connect('mongodb+srv://nithiya_5:nithiya_2005@cluster0.a02jqzo.mongodb.
 });
 
 app.post('/signup', async (req, res) => {
-  const { email, password, role } = req.body;
+  const { name,email, password, role } = req.body;
 
-  if (!email || !password || !role) {
+  if (!email || !password || !role || !name) {
     return res.status(400).json({ error: 'Email, password, and role are required' });
   }
 
@@ -86,3 +86,6 @@ app.post('/login', async (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
+
+ 
+   
