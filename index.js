@@ -3,9 +3,11 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const { userSchema } = require('./schema');
 const app = express();
+const cors = require('cors');
 const port = 4000;
 const User = require('./schema')
 app.use(express.json());
+app.use(cors());
 
 mongoose.connect('mongodb+srv://nithiya_5:nithiya_2005@cluster0.a02jqzo.mongodb.net/fitness?retryWrites=true&w=majority&appName=Cluster0', {
   useNewUrlParser: true,
@@ -86,6 +88,3 @@ app.post('/login', async (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
-
- 
-   
