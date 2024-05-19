@@ -1,119 +1,24 @@
-// const express = require('express');
-// const mongoose = require('mongoose');
-// const bcrypt = require('bcrypt');
-// const { userSchema } = require('./schema');
-// const app = express();
-// const cors = require('cors');
-// const port = 4000;
-// const User = require('./schema')
-// app.use(express.json());
-// app.use(cors());
-
-// mongoose.connect('mongodb+srv://nithiya_5:nithiya_2005@cluster0.a02jqzo.mongodb.net/fitness?retryWrites=true&w=majority&appName=Cluster0', {
-//   useNewUrlParser: true,
-//   useUnifiedTopology: true
-// }).then(() => {
-//   console.log('Connected to MongoDB');
-// }).catch((error) => {
-//   console.error('Error connecting to MongoDB:', error);
-// });
-
-// app.post('/signup', async (req, res) => {
-//   const { name,email, password, role } = req.body;
-
-//   if (!email || !password || !role || !name) {
-//     return res.status(400).json({ error: 'Email, password, and role are required' });
-//   }
-
-//   try {
-//     const existingUser = await User.findOne({ email });
-//     if (existingUser) {
-//       return res.status(400).json({ error: 'User already exists' });
-//     }
-
-//     const hashedPassword = await bcrypt.hash(password, 10);
-
-//     const newUser = new User({
-//       email,
-//       password: hashedPassword,
-//       role
-//     });
-
-//     await newUser.save();
-
-//     res.status(201).json({ messageconst: 'User signed up successfully' });
-//   } catch (error) {
-//     console.error('Error signing up user:', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// });
-
-// app.post('/login', async (req, res) => {
-//   const { email, password } = req.body;
-
-//   if (!email || !password) {
-//     return res.status(400).json({ error: 'Email and password are required' });
-//   }
-
-//   try {
-//     const user = await User.findOne({ email });
-
-//     if (!user) {
-//       return res.status(401).json({ error: 'Invalid email or password' });
-//     }
-
-//     const passwordMatch = await bcrypt.compare(password, user.password);
-//     if (!passwordMatch) {
-//       return res.status(401).json({ error: 'Invalid email or password' });
-//     }
-
-//     // Assuming the user ID is stored in the _id field of the user document
-//     const userId = user._id;
-
-//     // Redirect to /login/:userId based on the user's role
-//     if (user.role === 'trainer') {
-//       res.status(200).json({ message: 'Trainer login successful', userId });
-//     } else if (user.role === 'trainee') {
-//       res.status(200).json({ message: 'Trainee login successful', userId });
-//     } else {
-//       // Handle unknown role
-//       res.status(401).json({ error: 'Invalid role' });
-//     }
-//   } catch (error) {
-//     console.error('Error logging in user:', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// });
-
-// app.listen(port, () => {
-//   console.log(`Server running on http://localhost:${port}`);
-// });
-
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const User = require('../usermodel');
-const bcrypt =require('bcrypt');
-const Workout = require('../workoutmodel');
+const User = require('./usermodel');
+const bcrypt = require('bcrypt');
+const Workout = require('./workoutmodel');
 const cloudinary = require('./cloudinaryConfig');
 const multer = require('multer');
-const Trainer = require('../trainerModel');
-const Video = require('../video');
+const Trainer = require('./trainerModel');
+const Video = require('./video');
 
 const upload = multer({ dest: 'uploads/' });
 
-
 const app = express();
 const port = process.env.PORT || 4000;
-
 
 dotenv.config();
 
 app.use(express.json());
 app.use(cors());
-
 
 mongoose.connect('mongodb+srv://nithiya_5:nithiya_2005@cluster0.a02jqzo.mongodb.net/fitness?retryWrites=true&w=majority', {
   useNewUrlParser: true,
@@ -148,7 +53,7 @@ app.post('/signup', async (req, res) => {
 
     await newUser.save();
 
-    res.status(201).json({ message: 'User signed up successfully',userId: newUser._id });
+    res.status(201).json({ message: 'User signed up successfully', userId: newUser._id });
   } catch (error) {
     console.error('Error signing up user:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -183,89 +88,88 @@ app.post('/login', async (req, res) => {
   }
 });
 
-app.get('/getTrainerDetails' ,async (req, res) => {
+app.get('/getTrainerDetails', async (req, res) => {
   const { trainerId } = req.query;
   try {
-      const trainer = await Trainer.findById(trainerId);
-      res.status(200).json({ trainer });
+    const trainer = await Trainer.findById(trainerId);
+    res.status(200).json({ trainer });
   } catch (error) {
-      res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
-
-app.get('/getTrainerVideos' , async (req, res) => {
-  const { trainerId } = req.params;
+app.get('/getTrainerVideos', async (req, res) => {
+  const { trainerId } = req.query; // corrected from req.params to req.query
   try {
-      const trainer = await Trainer.findById(trainerId);
-      res.status(200).json({ videos: trainer.videos });
+    const trainer = await Trainer.findById(trainerId);
+    res.status(200).json({ videos: trainer.videos });
   } catch (error) {
-      res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
-app.post('/uploadVideo' , async (req, res) => {
-  const { title } = req.body;
-  const { path } = req.file;
+app.post('/uploadVideo', upload.single('video'), async (req, res) => {
+  const { title, trainerId } = req.body;
+  const { path } = req.file; // ensure this is correct
+
   try {
-      const result = await cloudinary.uploader.upload(path, { resource_type: "video" });
-      const newVideo = new Video({
-          title,
-          url: result.secure_url
-      });
-      await newVideo.save();
+    const result = await cloudinary.uploader.upload(path, { resource_type: "video" });
+    const newVideo = new Video({
+      title,
+      url: result.secure_url
+    });
 
-      const trainer = await Trainer.findById(req.body.trainerId);
-      trainer.videos.push(result.secure_url);
-      await trainer.save();
-      
-      res.status(200).json({ url: result.secure_url });
+    await newVideo.save();
+
+    const trainer = await Trainer.findById(trainerId);
+    trainer.videos.push(result.secure_url);
+    await trainer.save();
+
+    res.status(200).json({ url: result.secure_url });
   } catch (error) {
-      res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
-app.delete('/deleteVideo' , async (req, res) => {
+app.delete('/deleteVideo', async (req, res) => {
   const { url } = req.query;
   try {
-      await Video.findOneAndDelete({ url });
-      const trainer = await Trainer.findOneAndUpdate(
-          { videos: url },
-          { $pull: { videos: url } },
-          { new: true }
-      );
-      const publicId = url.split('/').pop().split('.')[0];
-      await cloudinary.uploader.destroy(publicId, { resource_type: "video" });
-      res.status(200).json({ message: 'Video deleted successfully' });
+    await Video.findOneAndDelete({ url });
+    const trainer = await Trainer.findOneAndUpdate(
+      { videos: url },
+      { $pull: { videos: url } },
+      { new: true }
+    );
+
+    const publicId = url.split('/').pop().split('.')[0];
+    await cloudinary.uploader.destroy(publicId, { resource_type: "video" });
+
+    res.status(200).json({ message: 'Video deleted successfully' });
   } catch (error) {
-      res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
-app.post('/addWorkout ' ,async (req, res) => {
+app.post('/addWorkout', upload.single('image'), async (req, res) => {
   const { trainerId, workoutName, description, category } = req.body;
   const { path } = req.file;
+
   try {
-      const result = await cloudinary.uploader.upload(path);
-      const newWorkout = new Workout({
-          trainerId,
-          workoutName,
-          description,
-          category,
-          imageUrl: result.secure_url
-      });
-      await newWorkout.save();
-      res.status(201).json({ message: 'Workout added successfully', workout: newWorkout });
+    const result = await cloudinary.uploader.upload(path);
+    const newWorkout = new Workout({
+      trainerId,
+      workoutName,
+      description,
+      category,
+      imageUrl: result.secure_url
+    });
+
+    await newWorkout.save();
+    res.status(201).json({ message: 'Workout added successfully', workout: newWorkout });
   } catch (error) {
-      res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
-
-
-// app.use('/api/users', userRoutes);
-// app.use('/api/trainer', trainerRoutes);
-// app.use('/api/workouts', workoutRoutes);
-// module.exports = router;
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
