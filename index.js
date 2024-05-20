@@ -6,23 +6,21 @@ const dotenv = require('dotenv');
 const User = require('./usermodel');
 const bcrypt = require('bcrypt');
 const Workout = require('./workoutmodel');
-// const cloudinary = require('./cloudinaryConfig');
 const multer = require('multer');
 const Trainer = require('./trainerModel');
 const Video = require('./video');
 
-// const upload = multer({ dest: 'uploads/' });
+// console.log( apiBaseUrl);
+
+//  const cloudinary = require('./cloudinaryConfig');
 
 
-// const cloudinary = require('./cloudinaryConfig');
-
-
-// const upload = multer({ dest: 'uploads/' });
 
 const app = express();
-const port = process.env.PORT || 4000;
+const port = process.env.PORT || 5000;
 
 dotenv.config();
+
 
 app.use(express.json());
 app.use(cors());
@@ -116,12 +114,10 @@ app.get('/getTrainerVideos', async (req, res) => {
 });
 
 
-// const multer = require('multer');
-const cloudinary = require('cloudinary').v2;
-// const express = require('express');
-// const router = express.Router();
 
-// Multer storage configuration
+const cloudinary = require('cloudinary').v2;
+
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/');
@@ -187,19 +183,66 @@ app.post('/uploadVideo', upload, async (req, res) => {
 
     // Create a new Video document and save it to the database
     const newVideo = new Video({
-      title,
+      title, 
       url: result.secure_url,
-      uploadedBy: trainerId
-    });
+      uploadedBy: trainerId 
+    }); 
 
-    await newVideo.save();
+    await newVideo.save(); 
 
     res.status(200).json({ url: result.secure_url });
   } catch (error) {
     console.error('Error uploading video:', error);
   }
 });
+// app.post('/uploadVideo', upload.single('video'), async (req, res) => {
+//   const { title, trainerId } = req.body;
+//   const { path } = req.file; // ensure this is correct
 
+//   try {
+//     const result = await cloudinary.uploader.upload(path, { resource_type: "video" });
+//     const newVideo = new Video({
+//       title,
+//       url: result.secure_url
+//     });
+
+//     await newVideo.save();
+
+//     const trainer = await Trainer.findById(trainerId);
+//     trainer.videos.push(result.secure_url);
+//     await trainer.save();
+
+//     res.status(200).json({ url: result.secure_url });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
+
+
+
+// app.post('/uploadVideo', async (req, res) => {
+//   const { title, trainerId } = req.body;
+//   const { path } = req.file; // ensure this is correct
+
+//   try {
+//     const result = await cloudinary.uploader.upload(path, { resource_type: "video" });
+//     const newVideo = new Video({
+//       title,
+//       url: result.secure_url
+//     });
+
+//     await newVideo.save();
+
+//     const trainer = await Trainer.findById(trainerId);
+//     trainer.videos.push(result.secure_url);
+//     await trainer.save();
+
+//     res.status(200).json({ url: result.secure_url });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   } 
+// });
 
 
 app.delete('/deleteVideo', async (req, res) => {
