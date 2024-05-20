@@ -169,7 +169,7 @@ app.use(function (err, req, res, next) {
 
 
 app.post('/uploadVideo', upload, async (req, res) => {
-  const { title, trainerId } = req.body;
+  const { title, trainerId } = req.query;
 
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
