@@ -490,28 +490,28 @@ app.post('/uploadVideo', upload, async (req, res) => {
     console.error('Error uploading video:', error);
   }
 });
-app.post('/uploadVideo', upload.single('video'), async (req, res) => {
-  const { title, trainerId } = req.body;
-  const { path } = req.file; // ensure this is correct
+// app.post('/uploadVideo', upload.single('video'), async (req, res) => {
+//   const { title, trainerId } = req.body;
+//   const { path } = req.file; // ensure this is correct
 
-  try {
-    const result = await cloudinary.uploader.upload(path, { resource_type: "video" });
-    const newVideo = new Video({
-      title,
-      url: result.secure_url
-    });
+//   try {
+//     const result = await cloudinary.uploader.upload(path, { resource_type: "video" });
+//     const newVideo = new Video({
+//       title,
+//       url: result.secure_url
+//     });
 
-    await newVideo.save();
+//     await newVideo.save();
 
-    const trainer = await Trainer.findById(trainerId);
-    trainer.videos.push(result.secure_url);
-    await trainer.save();
+//     const trainer = await Trainer.findById(trainerId);
+//     trainer.videos.push(result.secure_url);
+//     await trainer.save();
 
-    res.status(200).json({ url: result.secure_url });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+//     res.status(200).json({ url: result.secure_url });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// });
 
 
 
