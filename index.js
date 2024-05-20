@@ -8,25 +8,19 @@ const Workout = require('./workoutmodel');
 const multer = require('multer');
 const Trainer = require('./trainerModel');
 const Video = require('./video');
-
-// console.log( apiBaseUrl);
-
-//  const cloudinary = require('./cloudinaryConfig');
-
-
+const cloudinary = require('cloudinary').v2;
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3000;
 
 dotenv.config();
-
 
 app.use(express.json());
 app.use(cors());
 
-mongoose.connect('mongodb+srv://nithiya_5:nithiya_2005@cluster0.a02jqzo.mongodb.net/fitness?retryWrites=true&w=majority', {
+mongoose.connect(`mongodb+srv://nithiya_5:nithiya_2005@cluster0.a02jqzo.mongodb.net/fitness?retryWrites=true&w=majority`, {
   useNewUrlParser: true,
-  useUnifiedTopology: true
+  useUnifiedTopology: true,
 }).then(() => {
   console.log('Connected to MongoDB');
 }).catch((error) => {
@@ -52,7 +46,7 @@ app.post('/signup', async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role
+      role,
     });
 
     await newUser.save();
@@ -103,7 +97,7 @@ app.get('/getTrainerDetails', async (req, res) => {
 });
 
 app.get('/getTrainerVideos', async (req, res) => {
-  const { trainerId } = req.query; // corrected from req.params to req.query
+  const { trainerId } = req.query;
   try {
     const trainer = await Trainer.findById(trainerId);
     res.status(200).json({ videos: trainer.videos });
@@ -112,41 +106,34 @@ app.get('/getTrainerVideos', async (req, res) => {
   }
 });
 
+// Initialize Cloudinary
+cloudinary.config({
+  cloud_name: 'dlsfdnt5m',
+  api_key: '155649525428376',
+  api_secret: 'TBRNN-q-xHyiVG4B6gkPqeRWW3o',
+});
 
-
-const cloudinary = require('cloudinary').v2;
-
-
+// Configure Multer storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/');
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + '-' + file.originalname);
-  }
+  },
 });
 
-// File filter to accept only videos
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('video/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Not a video file!'), false);
-  }
-};
-
-// Initialize Multer with file size limit and file filter
+// Multer upload middleware
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB file size limit
-  fileFilter: fileFilter
-}).single('video');
-
-// Initialize Cloudinary
-cloudinary.config({
-  cloud_name: 'dlsfdnt5m',
-    api_key: '155649525428376',
-    api_secret: 'TBRNN-q-xHyiVG4B6gkPqeRWW3o'
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('video/') || file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Not a valid file!'), false);
+    }
+  },
 });
 
 // Multer error handler middleware
@@ -162,87 +149,66 @@ app.use(function (err, req, res, next) {
     console.error('Unknown error:', err);
     res.status(500).json({ error: 'Internal server error' });
   } else {
-    next(); // No multer error, continue to next middleware
+    next();
   }
 });
 
-
-app.post('/uploadVideo', upload, async (req, res) => {
+// Video upload route
+app.post('/uploadVideo', upload.single('video'), async (req, res) => {
   const { title, trainerId } = req.body;
 
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
 
-  const { path } = req.file; // Path to the uploaded file
+  const { path } = req.file;
 
   try {
-    // Upload the video to Cloudinary
     const result = await cloudinary.uploader.upload(path, { resource_type: 'video' });
 
-    // Create a new Video document and save it to the database
     const newVideo = new Video({
-      title, 
+      title,
       url: result.secure_url,
-      uploadedBy: trainerId 
-    }); 
+      uploadedBy: trainerId,
+    });
 
-    await newVideo.save(); 
+    await newVideo.save();
 
     res.status(200).json({ url: result.secure_url });
   } catch (error) {
     console.error('Error uploading video:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
-// app.post('/uploadVideo', upload.single('video'), async (req, res) => {
-//   const { title, trainerId } = req.body;
-//   const { path } = req.file; // ensure this is correct
 
-//   try {
-//     const result = await cloudinary.uploader.upload(path, { resource_type: "video" });
-//     const newVideo = new Video({
-//       title,
-//       url: result.secure_url
-//     });
+// Workout upload route
+app.post('/addWorkout', upload.single('image'), async (req, res) => {
+  const { trainerId, workoutName, description, category } = req.body;
 
-//     await newVideo.save();
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
 
-//     const trainer = await Trainer.findById(trainerId);
-//     trainer.videos.push(result.secure_url);
-//     await trainer.save();
+  const { path } = req.file;
 
-//     res.status(200).json({ url: result.secure_url });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// });
+  try {
+    const result = await cloudinary.uploader.upload(path);
 
+    const newWorkout = new Workout({
+      trainerId,
+      workoutName,
+      description,
+      category,
+      imageUrl: result.secure_url,
+    });
 
-
-
-// app.post('/uploadVideo', async (req, res) => {
-//   const { title, trainerId } = req.body;
-//   const { path } = req.file; // ensure this is correct
-
-//   try {
-//     const result = await cloudinary.uploader.upload(path, { resource_type: "video" });
-//     const newVideo = new Video({
-//       title,
-//       url: result.secure_url
-//     });
-
-//     await newVideo.save();
-
-//     const trainer = await Trainer.findById(trainerId);
-//     trainer.videos.push(result.secure_url);
-//     await trainer.save();
-
-//     res.status(200).json({ url: result.secure_url });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   } 
-// });
-
+    await newWorkout.save();
+    res.status(201).json({ message: 'Workout added successfully', workout: newWorkout });
+  } catch (error) {
+    console.error('Error adding workout:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 app.delete('/deleteVideo', async (req, res) => {
   const { url } = req.query;
@@ -255,57 +221,13 @@ app.delete('/deleteVideo', async (req, res) => {
     );
 
     const publicId = url.split('/').pop().split('.')[0];
-    await cloudinary.uploader.destroy(publicId, { resource_type: "video" });
+    await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
 
     res.status(200).json({ message: 'Video deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
-
-
-// app.post('/addWorkout', upload.single('image'), async (req, res) => {
-//   const { trainerId, workoutName, description, category } = req.body;
-//   const { path } = req.file;
-
-//   try {
-//     const result = await cloudinary.uploader.upload(path);
-//     const newWorkout = new Workout({
-//       trainerId,
-//       workoutName,
-//       description,
-//       category,
-//       imageUrl: result.secure_url
-//     });
-
-//     await newWorkout.save();
-//     res.status(201).json({ message: 'Workout added successfully', workout: newWorkout });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// });
-
-// app.post('/addWorkout', upload.single('image'), async (req, res) => {
-//   const { trainerId, workoutName, description, category } = req.body;
-//   const { path } = req.file;
-
-//   try {
-//     const result = await cloudinary.uploader.upload(path);
-//     const newWorkout = new Workout({
-//       trainerId,
-//       workoutName,
-//       description,
-//       category,
-//       imageUrl: result.secure_url
-//     });
-
-//     await newWorkout.save();
-//     res.status(201).json({ message: 'Workout added successfully', workout: newWorkout });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// });
-
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
