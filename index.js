@@ -1,3 +1,4 @@
+
 // const express = require('express');
 // const mongoose = require('mongoose');
 // const bcrypt = require('bcrypt');
@@ -286,6 +287,14 @@ const Video = require('./video');
 
 // const upload = multer({ dest: 'uploads/' });
 
+
+const cloudinary = require('./cloudinaryConfig');
+const multer = require('multer');
+const Trainer = require('./trainerModel');
+const Video = require('./video');
+
+// const upload = multer({ dest: 'uploads/' });
+
 const app = express();
 const port = process.env.PORT || 4000;
 
@@ -381,6 +390,7 @@ app.get('/getTrainerVideos', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
 
 // const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
@@ -478,6 +488,27 @@ app.post('/uploadVideo', upload, async (req, res) => {
     res.status(200).json({ url: result.secure_url });
   } catch (error) {
     console.error('Error uploading video:', error);
+  }
+});
+app.post('/uploadVideo', upload.single('video'), async (req, res) => {
+  const { title, trainerId } = req.body;
+  const { path } = req.file; // ensure this is correct
+
+  try {
+    const result = await cloudinary.uploader.upload(path, { resource_type: "video" });
+    const newVideo = new Video({
+      title,
+      url: result.secure_url
+    });
+
+    await newVideo.save();
+
+    const trainer = await Trainer.findById(trainerId);
+    trainer.videos.push(result.secure_url);
+    await trainer.save();
+
+    res.status(200).json({ url: result.secure_url });
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
@@ -508,6 +539,7 @@ app.post('/uploadVideo', upload, async (req, res) => {
 //   } 
 // });
 
+
 app.delete('/deleteVideo', async (req, res) => {
   const { url } = req.query;
   try {
@@ -526,6 +558,7 @@ app.delete('/deleteVideo', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
 
 // app.post('/addWorkout', upload.single('image'), async (req, res) => {
 //   const { trainerId, workoutName, description, category } = req.body;
@@ -547,6 +580,28 @@ app.delete('/deleteVideo', async (req, res) => {
 //     res.status(500).json({ message: error.message });
 //   }
 // });
+
+app.post('/addWorkout', upload.single('image'), async (req, res) => {
+  const { trainerId, workoutName, description, category } = req.body;
+  const { path } = req.file;
+
+  try {
+    const result = await cloudinary.uploader.upload(path);
+    const newWorkout = new Workout({
+      trainerId,
+      workoutName,
+      description,
+      category,
+      imageUrl: result.secure_url
+    });
+
+    await newWorkout.save();
+    res.status(201).json({ message: 'Workout added successfully', workout: newWorkout });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
