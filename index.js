@@ -15,9 +15,7 @@ const Video = require('./video');
 
 
 const cloudinary = require('./cloudinaryConfig');
-const multer = require('multer');
-const Trainer = require('./trainerModel');
-const Video = require('./video');
+
 
 // const upload = multer({ dest: 'uploads/' });
 
