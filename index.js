@@ -279,12 +279,12 @@ const dotenv = require('dotenv');
 const User = require('./usermodel');
 const bcrypt = require('bcrypt');
 const Workout = require('./workoutmodel');
-const cloudinary = require('./cloudinaryConfig');
+// const cloudinary = require('./cloudinaryConfig');
 const multer = require('multer');
 const Trainer = require('./trainerModel');
 const Video = require('./video');
 
-const upload = multer({ dest: 'uploads/' });
+// const upload = multer({ dest: 'uploads/' });
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -382,28 +382,131 @@ app.get('/getTrainerVideos', async (req, res) => {
   }
 });
 
-app.post('/uploadVideo', upload.single('video'), async (req, res) => {
+// const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+// const express = require('express');
+// const router = express.Router();
+
+// Multer storage configuration
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+
+// File filter to accept only videos
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('video/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Not a video file!'), false);
+  }
+};
+
+// Initialize Multer with file size limit and file filter
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB file size limit
+  fileFilter: fileFilter
+}).single('video');
+
+// Initialize Cloudinary
+cloudinary.config({
+  cloud_name: 'dlsfdnt5m',
+    api_key: '155649525428376',
+    api_secret: 'TBRNN-q-xHyiVG4B6gkPqeRWW3o'
+});
+
+// Multer error handler middleware
+app.use(function (err, req, res, next) {
+  if (err instanceof multer.MulterError) {
+    console.error('Multer error:', err);
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File size too large. Maximum 50MB allowed.' });
+    } else {
+      return res.status(400).json({ error: 'File upload error' });
+    }
+  } else if (err) {
+    console.error('Unknown error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  } else {
+    next(); // No multer error, continue to next middleware
+  }
+});
+
+// Video upload route
+// app.post('/upload', upload, (req, res) => {
+//   if (!req.file) {
+//     return res.status(400).json({ error: 'No file uploaded' });
+//   }
+
+  // Upload to Cloudinary
+//   cloudinary.uploader.upload(req.file.path, { resource_type: 'video' }, (error, result) => {
+//     if (error) {
+//       console.error('Cloudinary error:', error);
+//       return res.status(500).json({ error: 'Failed to upload video to Cloudinary' });
+//     }
+//     res.status(200).json({ message: 'Video uploaded successfully', url: result.url });
+//   });
+// });
+
+app.post('/uploadVideo', upload, async (req, res) => {
   const { title, trainerId } = req.body;
-  const { path } = req.file; // ensure this is correct
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const { path } = req.file; // Path to the uploaded file
 
   try {
-    const result = await cloudinary.uploader.upload(path, { resource_type: "video" });
+    // Upload the video to Cloudinary
+    const result = await cloudinary.uploader.upload(path, { resource_type: 'video' });
+
+    // Create a new Video document and save it to the database
     const newVideo = new Video({
       title,
-      url: result.secure_url
+      url: result.secure_url,
+      uploadedBy: trainerId
     });
 
     await newVideo.save();
 
-    const trainer = await Trainer.findById(trainerId);
-    trainer.videos.push(result.secure_url);
-    await trainer.save();
-
     res.status(200).json({ url: result.secure_url });
   } catch (error) {
+    console.error('Error uploading video:', error);
     res.status(500).json({ message: error.message });
   }
 });
+
+
+
+
+// app.post('/uploadVideo', async (req, res) => {
+//   const { title, trainerId } = req.body;
+//   const { path } = req.file; // ensure this is correct
+
+//   try {
+//     const result = await cloudinary.uploader.upload(path, { resource_type: "video" });
+//     const newVideo = new Video({
+//       title,
+//       url: result.secure_url
+//     });
+
+//     await newVideo.save();
+
+//     const trainer = await Trainer.findById(trainerId);
+//     trainer.videos.push(result.secure_url);
+//     await trainer.save();
+
+//     res.status(200).json({ url: result.secure_url });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   } 
+// });
 
 app.delete('/deleteVideo', async (req, res) => {
   const { url } = req.query;
@@ -424,26 +527,26 @@ app.delete('/deleteVideo', async (req, res) => {
   }
 });
 
-app.post('/addWorkout', upload.single('image'), async (req, res) => {
-  const { trainerId, workoutName, description, category } = req.body;
-  const { path } = req.file;
+// app.post('/addWorkout', upload.single('image'), async (req, res) => {
+//   const { trainerId, workoutName, description, category } = req.body;
+//   const { path } = req.file;
 
-  try {
-    const result = await cloudinary.uploader.upload(path);
-    const newWorkout = new Workout({
-      trainerId,
-      workoutName,
-      description,
-      category,
-      imageUrl: result.secure_url
-    });
+//   try {
+//     const result = await cloudinary.uploader.upload(path);
+//     const newWorkout = new Workout({
+//       trainerId,
+//       workoutName,
+//       description,
+//       category,
+//       imageUrl: result.secure_url
+//     });
 
-    await newWorkout.save();
-    res.status(201).json({ message: 'Workout added successfully', workout: newWorkout });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+//     await newWorkout.save();
+//     res.status(201).json({ message: 'Workout added successfully', workout: newWorkout });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// });
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
