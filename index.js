@@ -1,4 +1,3 @@
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -169,7 +168,7 @@ app.use(function (err, req, res, next) {
 
 
 app.post('/uploadVideo', upload, async (req, res) => {
-  const { title, trainerId } = req.query;
+  const { title, trainerId } = req.body;
 
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
