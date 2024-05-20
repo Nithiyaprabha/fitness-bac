@@ -210,6 +210,17 @@ app.post('/addWorkout', upload.single('image'), async (req, res) => {
   }
 });
 
+app.get('/getAllData', async (req, res) => {
+  try {
+    const videos = await Video.find();
+    const workouts = await Workout.find();
+    res.json({ videos, workouts });
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    res.status(500).json({ error: 'Failed to fetch data' });
+  }
+});
+
 app.delete('/deleteVideo', async (req, res) => {
   const { url } = req.query;
   try {
