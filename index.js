@@ -222,47 +222,47 @@ app.delete('/deleteVideo', async (req, res) => {
 });
 
 
-app.post('/addWorkout', upload.single('image'), async (req, res) => {
-  const { trainerId, workoutName, description, category } = req.body;
-  const { path } = req.file;
+// app.post('/addWorkout', upload.single('image'), async (req, res) => {
+//   const { trainerId, workoutName, description, category } = req.body;
+//   const { path } = req.file;
 
-  try {
-    const result = await cloudinary.uploader.upload(path);
-    const newWorkout = new Workout({
-      trainerId,
-      workoutName,
-      description,
-      category,
-      imageUrl: result.secure_url
-    });
+//   try {
+//     const result = await cloudinary.uploader.upload(path);
+//     const newWorkout = new Workout({
+//       trainerId,
+//       workoutName,
+//       description,
+//       category,
+//       imageUrl: result.secure_url
+//     });
 
-    await newWorkout.save();
-    res.status(201).json({ message: 'Workout added successfully', workout: newWorkout });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+//     await newWorkout.save();
+//     res.status(201).json({ message: 'Workout added successfully', workout: newWorkout });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// });
 
-app.post('/addWorkout', upload.single('image'), async (req, res) => {
-  const { trainerId, workoutName, description, category } = req.body;
-  const { path } = req.file;
+// app.post('/addWorkout', upload.single('image'), async (req, res) => {
+//   const { trainerId, workoutName, description, category } = req.body;
+//   const { path } = req.file;
 
-  try {
-    const result = await cloudinary.uploader.upload(path);
-    const newWorkout = new Workout({
-      trainerId,
-      workoutName,
-      description,
-      category,
-      imageUrl: result.secure_url
-    });
+//   try {
+//     const result = await cloudinary.uploader.upload(path);
+//     const newWorkout = new Workout({
+//       trainerId,
+//       workoutName,
+//       description,
+//       category,
+//       imageUrl: result.secure_url
+//     });
 
-    await newWorkout.save();
-    res.status(201).json({ message: 'Workout added successfully', workout: newWorkout });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+//     await newWorkout.save();
+//     res.status(201).json({ message: 'Workout added successfully', workout: newWorkout });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// });
 
 
 app.listen(port, () => {
