@@ -9,6 +9,7 @@ const multer = require('multer');
 const Trainer = require('./trainerModel');
 const Video = require('./video');
 const cloudinary = require('cloudinary').v2;
+const LikedVideos = require('./likedVideos')
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -237,6 +238,102 @@ app.delete('/deleteVideo', async (req, res) => {
     res.status(200).json({ message: 'Video deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+app.post('/followTrainer/:trainerId', async (req, res) => {
+  const { trainerId } = req.params;
+  const { userId } = req.body;
+  try {
+    const user = await User.findById(userId);
+    const trainer = await User.findById(trainerId);
+    if (!user || !trainer) {
+      return res.status(404).json({ message: 'User or Trainer not found' });
+    }
+    if (trainer.followers.includes(userId)) {
+      trainer.followers.pull(userId);
+    } else {
+      trainer.followers.push(userId);
+    }
+    await trainer.save();
+    res.status(200).json({ message: 'Trainer follow status updated' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/addToLikedVideos', async (req, res) => {
+  try {
+    const { videoId, userId } = req.body;
+
+    // Check if any of the required values are missing
+    if (!videoId || !userId) {
+      return res.status(400).json({ error: 'Missing videoId or userId' });
+    }
+
+    // Find the user by userId
+    const user = await User.findById(userId);
+
+    // Check if user exists
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if the user is a trainee
+    if (user.role !== 'trainee') {
+      return res.status(403).json({ error: 'Only trainees can like videos' });
+    }
+
+    // Check if the liked videos list exists for the trainee
+    let likedVideos = await LikedVideos.findOne({ traineeId: userId });
+
+    // If liked videos list doesn't exist, create a new one
+    if (!likedVideos) {
+      likedVideos = new LikedVideos({ traineeId: userId, videos: [] });
+    }
+
+    // Check if the video is already in the liked videos list
+    if (likedVideos.videos.includes(videoId)) {
+      return res.status(400).json({ error: 'Video already exists in liked videos' });
+    }
+
+    // Add the videoId to the liked videos list
+    likedVideos.videos.push(videoId);
+
+    // Save the updated liked videos list
+    await likedVideos.save();
+
+    // Respond with success message
+    res.status(200).json({ message: 'Video added to liked videos successfully' });
+  } catch (error) {
+    console.error('Error adding video to liked videos:', error);
+    res.status(500).json({ error: 'Failed to add video to liked videos' });
+  }
+});
+
+app.delete('/unlikeVideo/:videoId', async (req, res) => {
+  try {
+    const videoId = req.params.videoId;
+
+    // Find the liked videos document containing the video
+    let likedVideos = await LikedVideos.findOne({ Video: { $in: [videoId] } });
+
+    // If liked videos list doesn't exist, return error
+    if (!likedVideos) {
+      return res.status(404).json({ error: 'Liked videos not found' });
+    }
+
+    // Remove the videoId from the liked videos list
+    likedVideos.Video = likedVideos.Video.filter(id => id !== videoId);
+
+    // Save the updated liked videos list
+    await likedVideos.save();
+
+    // Respond with success message
+    res.status(200).json({ message: 'Video removed from liked videos successfully' });
+  } catch (error) {
+    console.error('Error removing video from liked videos:', error);
+    res.status(500).json({ error: 'Failed to remove video from liked videos' });
   }
 });
 
