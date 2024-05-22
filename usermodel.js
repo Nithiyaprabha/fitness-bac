@@ -1,6 +1,6 @@
 // models.js
 const mongoose = require('mongoose');
-
+const Schema = mongoose.Schema;
 const userSchema = new mongoose.Schema({
   email: {
     type: String,
@@ -15,12 +15,27 @@ const userSchema = new mongoose.Schema({
     type:String,
     required: true
   },
+  // likedVideos: [{ type: Schema.Types.ObjectId, ref: 'Video' }],
+  // followers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  // followedTrainers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   // name: String,
   // followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Trainee' }]
   // Add any other fields specific to Trainer model
-});
-// dietPlan.model.js
 
+likedVideos: [{ 
+  type: Schema.Types.ObjectId, 
+  ref: 'Video' 
+}],
+followers: [{ 
+  type: Schema.Types.ObjectId, 
+  ref: 'User' 
+}],
+followedTrainers: [{ 
+  type: Schema.Types.ObjectId, 
+  ref: 'User' 
+}],
+// dietPlan.model.js
+});
 const User = mongoose.model('user',userSchema);
 module.exports = User;
 

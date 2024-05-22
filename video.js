@@ -10,7 +10,7 @@ const videoSchema = new mongoose.Schema({
     },
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User' // Assuming you have a Trainer model for uploadedBy field
+      ref: 'User' 
     },
     createdAt: {
       type: Date,
