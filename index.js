@@ -10,6 +10,7 @@ const Trainer = require('./trainerModel');
 const Video = require('./video');
 const cloudinary = require('cloudinary').v2;
 const LikedVideos = require('./likedVideos')
+const DietPlan = require('./diet');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -211,6 +212,7 @@ app.post('/addWorkout', upload.single('image'), async (req, res) => {
   }
 });
 
+
 app.get('/getAllData', async (req, res) => {
   try {
     const videos = await Video.find();
@@ -221,6 +223,28 @@ app.get('/getAllData', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch data' });
   }
 });
+
+app.get('/getVideos', async (req, res) => {
+  try {
+    const videos = await Video.find().populate('uploader', 'name');
+    res.json(videos);
+  } catch (error) {
+    console.error('Error fetching videos:', error);
+    res.status(500).send('Failed to fetch videos');
+  }
+});
+
+app.get('/getWorkouts', async (req, res) => {
+  try {
+    const workouts = await Workout.find();
+    res.json(workouts);
+  } catch (error) {
+    console.error('Error fetching workouts:', error);
+    res.status(500).send('Failed to fetch workouts');
+  }
+});
+
+
 
 app.delete('/deleteVideo', async (req, res) => {
   const { url } = req.query;
@@ -241,24 +265,72 @@ app.delete('/deleteVideo', async (req, res) => {
   }
 });
 
-app.post('/followTrainer/:trainerId', async (req, res) => {
-  const { trainerId } = req.params;
-  const { userId } = req.body;
+app.post('/followTrainer', async (req, res) => {
   try {
-    const user = await User.findById(userId);
-    const trainer = await User.findById(trainerId);
-    if (!user || !trainer) {
-      return res.status(404).json({ message: 'User or Trainer not found' });
-    }
-    if (trainer.followers.includes(userId)) {
-      trainer.followers.pull(userId);
-    } else {
-      trainer.followers.push(userId);
-    }
-    await trainer.save();
-    res.status(200).json({ message: 'Trainer follow status updated' });
+    const { traineeId, trainerId } = req.body;
+
+    // Add the trainer to the trainee's followed trainers list
+    await User.findByIdAndUpdate(traineeId, { $addToSet: { followedTrainers: trainerId } });
+
+    // Add the trainee to the trainer's followers list
+    await User.findByIdAndUpdate(trainerId, { $addToSet: { followers: traineeId } });
+
+    res.send('Followed successfully');
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error following trainer:', error);
+    res.status(500).send('Failed to follow trainer');
+  }
+});
+
+
+
+app.delete('/unfollowTrainer', async (req, res) => {
+  try {
+    const { traineeId, trainerId } = req.body;
+
+    // Check if any of the required values are missing
+    if (!traineeId || !trainerId) {
+      return res.status(400).json({ error: 'Missing traineeId or trainerId' });
+    }
+
+    // Check if the trainee exists and is indeed a trainee
+    const trainee = await User.findById(traineeId);
+    if (!trainee) {
+      return res.status(404).json({ error: 'Trainee not found' });
+    }
+    if (trainee.role !== 'trainee') {
+      return res.status(403).json({ error: 'Only trainees can unfollow trainers' });
+    }
+
+    // Check if the trainee is following the trainer
+    if (!trainee.followedTrainers.includes(trainerId)) {
+      return res.status(400).json({ error: 'Trainee is not following this trainer' });
+    }
+
+    // Remove the trainerId from the trainee's followedTrainers list
+    await User.findByIdAndUpdate(traineeId, { $pull: { followedTrainers: trainerId } }, { new: true });
+
+    // Remove the traineeId from the trainer's followers list
+    await User.findByIdAndUpdate(trainerId, { $pull: { followers: traineeId } }, { new: true });
+
+    // Respond with success message
+    res.status(200).json({ message: 'Unfollowed trainer successfully' });
+  } catch (error) {
+    console.error('Error unfollowing trainer:', error);
+    res.status(500).json({ error: 'Failed to unfollow trainer' });
+  }
+})
+
+app.get('/trainerProfile/:trainerId', async (req, res) => {
+  try {
+    const trainer = await User.findById(req.params.trainerId).populate('followers', 'name email');
+    if (!trainer) {
+      return res.status(404).send('Trainer not found');
+    }
+    res.json(trainer);
+  } catch (error) {
+    console.error('Error fetching trainer profile:', error);
+    res.status(500).send('Failed to fetch trainer profile');
   }
 });
 
@@ -311,25 +383,22 @@ app.post('/addToLikedVideos', async (req, res) => {
   }
 });
 
+
 app.delete('/unlikeVideo/:videoId', async (req, res) => {
   try {
     const videoId = req.params.videoId;
+    const userId = req.body.userId; // Assuming userId is sent in the request body
 
-    // Find the liked videos document containing the video
-    let likedVideos = await LikedVideos.findOne({ Video: { $in: [videoId] } });
+    let likedVideos = await LikedVideos.findOne({ traineeId: userId });
 
-    // If liked videos list doesn't exist, return error
     if (!likedVideos) {
       return res.status(404).json({ error: 'Liked videos not found' });
     }
 
-    // Remove the videoId from the liked videos list
-    likedVideos.Video = likedVideos.Video.filter(id => id !== videoId);
+    likedVideos.videos = likedVideos.videos.filter(id => id.toString() !== videoId);
 
-    // Save the updated liked videos list
     await likedVideos.save();
 
-    // Respond with success message
     res.status(200).json({ message: 'Video removed from liked videos successfully' });
   } catch (error) {
     console.error('Error removing video from liked videos:', error);
@@ -337,6 +406,69 @@ app.delete('/unlikeVideo/:videoId', async (req, res) => {
   }
 });
 
+app.get('/plans', async (req, res) => {
+  try {
+    const plans = await DietPlan.find();
+    res.json(plans);
+  } catch (error) {
+    console.error('Error fetching diet plans:', error);
+    res.status(500).json({ error: 'Failed to fetch diet plans' });
+  }
+});
+
+// Get a single diet plan by ID
+app.get('/plans/:id', async (req, res) => {
+  try {
+    const plan = await DietPlan.findById(req.params.id);
+    if (!plan) {
+      return res.status(404).json({ error: 'Diet plan not found' });
+    }
+    res.json(plan);
+  } catch (error) {
+    console.error('Error fetching diet plan:', error);
+    res.status(500).json({ error: 'Failed to fetch diet plan' });
+  }
+});
+
+// Create a new diet plan
+app.post('/plans', async (req, res) => {
+  try {
+    const newPlan = new DietPlan(req.body);
+    await newPlan.save();
+    res.status(201).json(newPlan);
+  } catch (error) {
+    console.error('Error creating diet plan:', error);
+    res.status(500).json({ error: 'Failed to create diet plan' });
+  }
+});
+
+// Update an existing diet plan
+app.put('/plans/:id', async (req, res) => {
+  try {
+    const updatedPlan = await DietPlan.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updatedPlan) {
+      return res.status(404).json({ error: 'Diet plan not found' });
+    }
+    res.json(updatedPlan);
+  } catch (error) {
+    console.error('Error updating diet plan:', error);
+    res.status(500).json({ error: 'Failed to update diet plan' });
+  }
+});
+
+// Delete a diet plan
+app.delete('/plans/:id', async (req, res) => {
+  try {
+    const deletedPlan = await DietPlan.findByIdAndDelete(req.params.id);
+    if (!deletedPlan) {
+      return res.status(404).json({ error: 'Diet plan not found' });
+    }
+    res.json({ message: 'Diet plan deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting diet plan:', error);
+    res.status(500).json({ error: 'Failed to delete diet plan' });
+  }
+});
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
